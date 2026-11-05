@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>상담문자 도우미</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 왼쪽 입력 카드 2개 + 오른쪽 문자 미리보기(고정). 좁은 화면에서는 한 줄로. */
+:root{
+  --bg:#F3F8EC; --bg2:#E3F1D3; --surface:#FFFFFF; --sunk:#F1F6EA; --line:#E1EAD5;
+  --ink:#24321D; --muted:#6D7B64; --accent:#6DBB5A; --accent-ink:#FFFFFF; --accent-soft:#DDF0CF;
+  --butter:#FFF2BF; --butter-ink:#94700C; --sky:#D3EDF9; --sky-ink:#2A7CA5; --pink:#FDE0E6; --pink-ink:#C0425D; --lav:#E9E3FB;
+  --ok:#3E9E4F; --bad:#D2455A; --shadow:0 4px 18px rgba(70,110,40,.08);
+  --display:"Jua","Noto Sans KR",system-ui,sans-serif;
+  --body:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131911; --bg2:#1B2617; --surface:#1E271A; --sunk:#253020; --line:#33412D;
+  --ink:#EAF2E2; --muted:#A3B29A; --accent:#8FD47B; --accent-ink:#13200E; --accent-soft:#2B3F24;
+  --butter:#3B3317; --butter-ink:#F3D673; --sky:#1D3846; --sky-ink:#9AD6F2; --pink:#43232B; --pink-ink:#F6A9B9; --lav:#2E2846;
+  --ok:#6FCF7E; --bad:#F06B7F; --shadow:0 4px 18px rgba(0,0,0,.3); color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg) linear-gradient(180deg,var(--bg2) 0,var(--bg) 360px) no-repeat;color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{max-width:1080px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left,0px)) 0 max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px}
+.top a.back{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;background:var(--surface);padding:7px 12px;border-radius:999px;box-shadow:var(--shadow)}
+.logo{width:42px;height:42px;border-radius:14px;background:var(--pink);display:grid;place-items:center;font-size:22px}
+.top strong{display:block;font-family:var(--display);font-weight:400;font-size:22px;line-height:1.2}
+.top small{color:var(--muted);font-size:12px}
+main{max-width:1080px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-left,0px)) 40px max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:400;font-size:28px;margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--muted);margin:0 0 20px}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--surface);border-radius:24px;padding:22px;box-shadow:var(--shadow);min-width:0}
+h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.step{font-family:var(--body);font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px}
+.s1 .step{background:var(--butter);color:var(--butter-ink)} .s2 .step{background:var(--sky);color:var(--sky-ink)}
+.s1{background:linear-gradient(165deg,var(--butter) 0,var(--surface) 38%)}
+.s2{background:linear-gradient(165deg,var(--sky) 0,var(--surface) 38%)}
+.saved{margin-left:auto;font-family:var(--body);font-size:12px;font-weight:700;color:var(--ok);background:var(--accent-soft);padding:3px 10px;border-radius:999px}
+.saved:empty{display:none}
+label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+input,select,textarea{width:100%;min-width:0;background:var(--sunk);border:1.5px solid transparent;border-radius:14px;padding:12px 14px;min-height:46px}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;background:var(--surface)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:14px;min-width:0}
+button{cursor:pointer;border:0;border-radius:14px;padding:12px 18px;font-weight:700}
+.primary{background:var(--accent);color:var(--accent-ink);width:100%;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 35%,transparent)}
+.secondary{background:var(--sunk);color:var(--ink)}
+.subtle{font-size:12px;color:var(--muted);margin-top:10px}
+.preview{position:sticky;top:16px;background:linear-gradient(165deg,var(--pink) 0,var(--surface) 30%)}
+.preview .tag{margin-left:auto;font-family:var(--body);font-size:12px;font-weight:700;color:var(--pink-ink);background:var(--surface);padding:3px 10px;border-radius:999px}
+.meta{font-size:12px;color:var(--muted);margin:-8px 0 12px}
+.preview textarea{height:560px;resize:vertical;line-height:1.85;font-size:14px;background:var(--sunk)}
+.actions{display:flex;gap:10px;margin-top:14px}
+.actions .primary{flex:1}
+.status{min-height:22px;font-size:13px;margin-top:10px;color:var(--ok);font-weight:700}
+.status.error{color:var(--bad)}
+details{margin-top:6px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+details p{font-size:12px;color:var(--muted);margin:8px 0 0}
+.sr{position:absolute;clip:rect(0,0,0,0);width:1px;height:1px;overflow:hidden}
+@media (max-width:760px){.layout{grid-template-columns:1fr}.preview{position:static}.preview textarea{height:500px}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo" aria-hidden="true">💬</div>
+  <div><strong>상담문자 도우미</strong><small>방문 상담 안내 문자 만들기</small></div>
+  <a class="back" href="../">← 도구 모음</a>
+</header>
+<main>
+  <h1>상담 안내, 입력하고 바로 복사하세요</h1>
+  <p class="lead">지국 정보는 한 번만 저장하고, 학생별 상담 정보만 바꿔주세요.</p>
+  <div class="layout">
+    <div class="col">
+      <section class="card s1">
+        <h2><span class="step">01</span>우리 지국 정보 <span class="saved" id="saved"></span></h2>
+        <form id="settings">
+          <div class="row">
+            <div class="field"><label for="branch">지국명</label><input id="branch" placeholder="예: 경포지국" maxlength="60" autocomplete="organization" required></div>
+            <div class="field"><label for="phone">전화번호</label><input id="phone" type="tel" placeholder="033-651-4360" maxlength="30" autocomplete="tel" required></div>
+          </div>
+          <button class="secondary" type="submit">지국 정보 저장</button>
+          <div class="subtle" id="storageNote">이 기기·브라우저에 저장되어 다음에도 자동으로 불러옵니다.</div>
+        </form>
+      </section>
+      <section class="card s2">
+        <h2><span class="step">02</span>학생별 상담 정보</h2>
+        <form id="student">
+          <div class="row">
+            <div class="field"><label for="name">학생 이름</label><input id="name" placeholder="예: 이서하" maxlength="40" autocomplete="off" required></div>
+            <div class="field"><label for="grade">학년</label><select id="grade" required><option value="">선택해주세요</option><option>유아</option><option>초등학교 1학년</option><option>초등학교 2학년</option><option>초등학교 3학년</option><option>초등학교 4학년</option><option>초등학교 5학년</option><option>초등학교 6학년</option><option>중학교 1학년</option><option>중학교 2학년</option><option>중학교 3학년</option><option>고등학생</option></select></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="date">상담 날짜</label><input id="date" type="date" required></div>
+            <div class="field"><label for="time">상담 시간</label><input id="time" type="time" required></div>
+          </div>
+          <div class="field"><label for="place">방문 상담 장소</label><input id="place" placeholder="아파트명, 동·호수 또는 상담 주소" maxlength="160" autocomplete="off" required></div>
+          <button class="primary" type="submit">안내 문자 만들고 복사하기</button>
+          <div class="subtle">날짜를 선택하면 요일과 오전·오후가 자동으로 표시됩니다.</div>
+        </form>
+      </section>
+    </div>
+    <section class="card preview">
+      <h2>문자 미리보기 <span class="tag">입력 즉시 반영</span></h2>
+      <p class="meta">필요하면 아래 문구를 직접 수정한 후 복사할 수 있어요.</p>
+      <label for="message" class="sr">안내 문자 내용</label>
+      <textarea id="message" spellcheck="false"></textarea>
+      <div class="actions"><button class="primary" id="copy" type="button">문자 복사</button><button class="secondary" id="reset" type="button">다음 학생</button></div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <details><summary>저장 안내</summary><p>지국명과 전화번호만 이 브라우저에 저장합니다. 학생 정보는 저장하지 않으며, 새로고침하거나 다음 학생을 누르면 지워집니다. 다른 기기·브라우저에서는 지국 정보를 다시 저장해주세요. 브라우저 데이터를 삭제하면 저장한 지국 정보도 지워집니다.</p></details>
+    </section>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id), key='kumon.consult.branch.v1';let savedBranch='',savedPhone='',timer;
+function status(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
+function loadSettings(){try{const x=JSON.parse(localStorage.getItem(key)||'null');if(x&&typeof x.branch==='string'&&typeof x.phone==='string'){$('branch').value=savedBranch=x.branch;$('phone').value=savedPhone=x.phone;$('saved').textContent='저장됨'}}catch(e){$('storageNote').textContent='브라우저 저장을 사용할 수 없습니다. 이번 화면에서는 입력한 정보로 사용할 수 있어요.'}}
+function saveSettings(){const b=$('branch').value.trim(),p=$('phone').value.trim();if(!b||!p)return false;try{localStorage.setItem(key,JSON.stringify({branch:b,phone:p}));savedBranch=b;savedPhone=p;$('saved').textContent='저장됨';return true}catch(e){$('saved').textContent='저장 불가';$('storageNote').textContent='브라우저 저장을 사용할 수 없습니다. 다음 방문에는 다시 입력해주세요.';return false}}
+function dateText(value){if(!value)return '[상담 날짜]';const parts=value.split('-').map(Number);const d=new Date(parts[0],parts[1]-1,parts[2]);return `${parts[0]}년 ${parts[1]}월 ${parts[2]}일(${'일월화수목금토'[d.getDay()]})`}
+function timeText(value){if(!value)return '[상담 시간]';const [h,m]=value.split(':').map(Number);return `${h<12?'오전':'오후'} ${h%12||12}시${m?' '+m+'분':''}`}
+function render(){const b=$('branch').value.trim()||'[지국명]',p=$('phone').value.trim()||'[전화번호]',n=$('name').value.trim()||'[학생 이름]',g=$('grade').value||'[학년]',place=$('place').value.trim()||'[상담 장소]';const organization=b.startsWith('구몬학습')?b:'구몬학습 '+b;
+$('message').value=`안녕하세요 🙂
+${organization}입니다.
+
+${n} 학생의 방문 학습 상담 일정을 안내드립니다.
+
+📌 방문 상담 안내
+• 학생 : ${n} / ${g}
+• 일시 : ${dateText($('date').value)} ${timeText($('time').value)}
+• 장소 : ${place}
+
+상담에 앞서 구몬학습을 살펴보실 수 있도록 안내자료를 보내드립니다. 편하실 때 확인해주세요 😊
+
+방문 당일 자녀분이 낯설지 않게 선생님을 만날 수 있도록, 학습 테스트와 상담이 진행된다는 점을 미리 알려주세요 ♡
+
+♥️ 구몬학습 과목 안내
+https://www.kumon.co.kr/Product/SmartKumonTree
+
+🔎 우리 아이 공부 스타일 찾기
+https://poomang.com/t/kyowonkumon
+
+🍎 무료 공부 MBTI 학업심리검사
+http://kumon.co.kr/qr/app?kutcde=814289
+
+일정 변경이나 궁금한 점이 있으시면 편하게 연락해주세요.
+
+☎️ ${organization}
+${p}`;status('')}
+function validate(){return $('settings').reportValidity()&&$('student').reportValidity()}
+async function copy(){if(!validate())return;saveSettings();const text=$('message').value;if(!text.trim()){status('복사할 문구를 입력해주세요.',true);return}let ok=false;try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);ok=true}}catch(e){}if(!ok){$('message').focus();$('message').select();try{ok=document.execCommand('copy')}catch(e){}}if(ok){status('복사 완료! 카카오톡이나 문자에 붙여넣어주세요.');$('copy').textContent='✓ 복사 완료';clearTimeout(timer);timer=setTimeout(()=>$('copy').textContent='문자 복사',2000)}else{$('message').focus();$('message').select();status('자동 복사가 제한되어 문구를 선택했어요. 길게 누르거나 Ctrl+C로 복사해주세요.',true)}}
+$('settings').addEventListener('submit',e=>{e.preventDefault();const ok=saveSettings();render();status(ok?'지국 정보를 저장했습니다.':'현재 화면에서 사용 가능합니다. 지국 정보 저장은 제한되어 있어요.',!ok)});
+['branch','phone','name','grade','date','time','place'].forEach(id=>$(id).addEventListener('input',()=>{if(id==='branch'||id==='phone')$('saved').textContent=$('branch').value===savedBranch&&$('phone').value===savedPhone?'저장됨':'저장 전';render()}));
+$('student').addEventListener('submit',e=>{e.preventDefault();render();copy()});$('copy').addEventListener('click',copy);$('reset').addEventListener('click',()=>{$('student').reset();render();$('name').focus();status('다음 학생의 상담 정보를 입력해주세요.')});loadSettings();render();
+</script>
+</body>
+</html>
