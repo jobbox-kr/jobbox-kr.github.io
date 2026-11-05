@@ -264,6 +264,7 @@ tr.sub .heat i.h2{background:color-mix(in srgb,var(--accent) 60%,var(--surface))
    비워두면 '체험 모드'로 동작해요 (이 기기 브라우저에만 저장).
    ============================================================ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbzOX_qARTPBkiSkTXu3v9foYJupkQDoBeviEcBcCBDjWwaMPFSIPYdixdFOUCD6PFXn/exec';
+const PAGE_MODE = 'teacher';
 </script>
 <script>
 // ===== 칭찬스티커판 공통 로직 (앱스스크립트 · 체험모드 공용) =====
@@ -584,6 +585,7 @@ function makeCore(st) {
 <script>
 (() => {
 const DEMO = !API_URL || API_URL.indexOf('__API') === 0;
+const PAGE = (typeof PAGE_MODE !== 'undefined' && PAGE_MODE) || 'all';   // 'teacher' | 'admin' | 'all'
 const DEMO_PW = 'demo1234';
 const ICON = {
   study:'M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.3l-5.8 3.1 1.1-6.5L2.6 9.3l6.5-.9z',
@@ -671,6 +673,7 @@ const S = {
   view:'all', attFilter:'elig', attQ:'', memberQ:'', tboards:[], bForm:null, bDel:null
 };
 const app = document.getElementById('app'), tabsEl = document.getElementById('tabs'), whoEl = document.getElementById('who'), layer = document.getElementById('layer');
+if (PAGE === 'admin') { document.title = '칭찬스티커판 관리자'; document.querySelector('.brand h1').insertAdjacentHTML('beforeend', '<span class="pill mine" style="font-family:var(--body);font-size:12px">관리자</span>'); }
 if (DEMO) document.getElementById('demoBar').innerHTML = `<div class="demo">체험 모드 · 이 기기에만 저장 · 마스터 비밀번호 ${DEMO_PW} · 예시 선생님 PIN 1234</div>`;
 
 let toastTimer;
@@ -742,13 +745,13 @@ function teacherOut(){
   S.mode = null; S.tid = null; S.token = null; S.teacher = null; S.members = []; S.tevents = []; S.tboards = []; S.pending = null;
   ls.set('stk_sess', null); S.login.pick = null; S.login.pin = ''; S.login.err = '';
 }
-function adminOut(){ S.atoken = null; S.aid = null; S.adm = null; ls.set('stk_asess', null); if (S.mode==='admin') S.mode = null; S.login.mode = 'pick'; S.login.pw=''; S.login.err=''; }
+function adminOut(){ S.atoken = null; S.aid = null; S.adm = null; ls.set('stk_asess', null); if (S.mode==='admin') S.mode = null; S.login.mode = PAGE === 'admin' ? 'admin' : 'pick'; S.login.pw=''; S.login.err=''; }
 
 async function boot(){
   try {
     const d = await api('init'); S.teachers = d.teachers; S.admins = d.admins; S.loaded = true;
-    if (S.tid && S.token) { try { applyMe(await api('me', {tid:S.tid, token:S.token})); } catch { teacherOut(); } }
-    else if (S.atoken) { try { applyAdmin(await api('admin', {aid:S.aid, atoken:S.atoken})); } catch { adminOut(); } }
+    if (PAGE !== 'admin' && S.tid && S.token) { try { applyMe(await api('me', {tid:S.tid, token:S.token})); } catch { teacherOut(); } }
+    else if (PAGE !== 'teacher' && S.atoken) { try { applyAdmin(await api('admin', {aid:S.aid, atoken:S.atoken})); } catch { adminOut(); } }
   } catch(e){ S.loadErr = e.message; }
   render();
 }
@@ -770,7 +773,7 @@ function render(){
   let html;
   if (S.mode === 'teacher') html = S.tab === 'members' ? membersView() : S.tab === 'records' ? recordsView() : S.tab === 'boards' ? boardsTabView() : boardView();
   else if (S.mode === 'admin') html = S.atab === 'events' ? eventsView() : S.atab === 'teachers' ? teachersView() : S.atab === 'admins' ? adminsView() : recentView();
-  else html = S.login.mode === 'admin' ? adminLoginView() : loginView();
+  else html = (PAGE === 'admin' || (PAGE === 'all' && S.login.mode === 'admin')) ? adminLoginView() : loginView();
   const ae = document.activeElement; const fid = ae && ae.id && app.contains(ae) ? ae.id : null;
   const selr = fid && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null;
   app.innerHTML = html;
@@ -814,7 +817,7 @@ function loginView(){
     </div>`;
   }
   return `<div class="stack"><div class="card">${form}</div>
-    <button class="linkbtn" data-act="lmode" data-v="admin" style="align-self:center">관리자 로그인</button></div>`;
+    ${PAGE === 'all' ? `<button class="linkbtn" data-act="lmode" data-v="admin" style="align-self:center">관리자 로그인</button>` : ''}</div>`;
 }
 function adminLoginView(){
   const L = S.login;
@@ -823,7 +826,7 @@ function adminLoginView(){
     <div class="tlist">${S.admins.map(a => `<button class="tbtn" aria-pressed="${L.apick===a.id}" data-act="apick" data-v="${a.id}">${esc(a.name)}</button>`).join('')}</div>
     <div class="field"><label for="apw">비밀번호</label><input type="password" id="apw" data-in="login.pw" value="${esc(L.pw)}" autocomplete="current-password"></div>
     ${L.err ? `<div class="notice bad">${esc(L.err)}</div>` : ''}
-    <div class="row"><button class="btn primary" data-act="adminLogin">들어가기</button><button class="btn" data-act="lmode" data-v="pick">선생님 화면으로</button></div>
+    <div class="row"><button class="btn primary" data-act="adminLogin">들어가기</button>${PAGE === 'all' ? `<button class="btn" data-act="lmode" data-v="pick">선생님 화면으로</button>` : ''}</div>
   </div>`;
 }
 
