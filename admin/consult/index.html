@@ -101,7 +101,8 @@ canvas{display:block;width:100%;height:auto}
 <header class="top">
   <div class="logo" aria-hidden="true">💬</div>
   <div><strong>상담문자 도우미</strong><small>방문 상담·앱 설치 안내 문자 만들기</small></div>
-  <a class="back" href="../">← 도구 모음</a>
+  <a class="back" id="back" href="../">← 도구 모음</a>
+  <script>(function(){try{var r=document.referrer;if(r&&new URL(r).origin===location.origin){var p=new URL(r).pathname;if(/\/message\/?$/.test(p))sessionStorage.setItem('consult.back','../../message/');else if(/\/admin\/?$/.test(p))sessionStorage.removeItem('consult.back')}var b=sessionStorage.getItem('consult.back');if(b)document.getElementById('back').href=b}catch(e){}})();</script>
 </header>
 <main>
   <nav class="tabs" role="tablist" aria-label="문자 종류">
